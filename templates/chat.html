@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+{% block title %}Chat with {{ other_user.username }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    * { box-sizing: border-box; }
+
+    body { overflow: hidden; }
+
+    .chat-wrapper {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        max-width: 720px;
+        margin: 0 auto;
+        background: #fff;
+        box-shadow: 0 0 30px rgba(0,0,0,0.15);
+    }
+
+  
+    .chat-header {
+        background: #0a58ca;
+        color: white;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+    .chat-header .avatar {
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        background: #495057;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: bold; font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .chat-header .user-info strong { display: block; font-size: 1rem; }
+    .chat-header .user-info small  { font-size: 0.78rem; opacity: 0.85; }
+
+    
+    .chat-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        background-color: #e5ddd5;
+        display: flex;
+        flex-direction: column;
+    }
+
+    
+    .message-row          { display: flex; margin-bottom: 6px; }
+    .message-row.sent     { justify-content: flex-end; }
+    .message-row.received { justify-content: flex-start; }
+
+   
+    .bubble {
+        max-width: 65%;
+        padding: 8px 12px 4px;
+        border-radius: 8px;
+        font-size: 0.93rem;
+        word-break: break-word;
+        position: relative;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .bubble.sent     { background: #dcf8c6; border-radius: 8px 0px 8px 8px; }
+    .bubble.received { background: #ffffff; border-radius: 0px 8px 8px 8px; }
+
+    
+    .bubble .meta {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 4px;
+        margin-top: 2px;
+        font-size: 0.68rem;
+        color: #777;
+    }
+    .tick       { font-size: 0.78rem; color: #aaa; }
+    .tick.read  { color: #4fc3f7; }
+
+    
+    .delete-btn {
+        background: none;
+        border: none;
+        color: #bbb;
+        font-size: 0.7rem;
+        padding: 0;
+        cursor: pointer;
+        display: none;
+        line-height: 1;
+    }
+    .bubble:hover .delete-btn { display: inline-block; }
+    .delete-btn:hover { color: #e53935; }
+
+    
+    #typing-indicator {
+        padding: 2px 16px 6px;
+        font-size: 0.78rem;
+        color: #555;
+        font-style: italic;
+        min-height: 22px;
+        flex-shrink: 0;
+    }
+
+    
+    .chat-footer {
+        padding: 10px 12px;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        border-top: 1px solid #ddd;
+    }
+    .chat-footer input {
+        flex: 1;
+        border-radius: 24px;
+        border: 1px solid #ccc;
+        padding: 10px 18px;
+        font-size: 0.93rem;
+        outline: none;
+        background: #fff;
+    }
+    .chat-footer input:focus { border-color: #075e54; }
+
+    .send-btn {
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        background: #0a58ca;
+        border: none;
+        color: white;
+        font-size: 1.1rem;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        flex-shrink: 0;
+    }
+    .send-btn:hover { background: #0a58ca; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-wrapper">
+
+    
+    <div class="chat-header">
+        <a href="{% url 'user_list' %}" class="text-white text-decoration-none me-1">
+            <i class="bi bi-arrow-left fs-5"></i>
+        </a>
+        <div class="avatar">{{ other_user.username|first|upper }}</div>
+        <div class="user-info">
+            <strong>{{ other_user.username }}</strong>
+            <small id="status-text">
+                {% if other_user.is_online %}🟢 Online{% else %}⚪ Offline{% endif %}
+            </small>
+        </div>
+    </div>
+
+    <div class="chat-body" id="chat-body">
+        {% for msg in chat_messages %}
+            {% if not msg.is_deleted %}
+            <div class="message-row {% if msg.sender == request.user %}sent{% else %}received{% endif %}"
+                 id="msg-{{ msg.id }}">
+                <div class="bubble {% if msg.sender == request.user %}sent{% else %}received{% endif %}">
+
+                    {{ msg.content }}
+
+                    <div class="meta">
+                        {{ msg.timestamp|date:"H:i" }}
+                        {% if msg.sender == request.user %}
+                            <span class="tick {% if msg.is_read %}read{% endif %}">
+                                {% if msg.is_read %}✓✓{% else %}✓{% endif %}
+                            </span>
+                            <button class="delete-btn"
+                                    onclick="deleteMessage({{ msg.id }})"
+                                    title="Delete">🗑</button>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    
+    <div id="typing-indicator"></div>
+
+    
+    <div class="chat-footer">
+        <input type="text"
+               id="msg-input"
+               placeholder="Type a message..."
+               autocomplete="off">
+        <button class="send-btn" onclick="sendMessage()">
+            <i class="bi bi-send-fill"></i>
+        </button>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    
+    const CURRENT_USER_ID = {{ request.user.id }};
+    const OTHER_USER_ID   = {{ other_user.id }};
+    const WS_URL = `ws://${window.location.host}/ws/chat/${OTHER_USER_ID}/`;
+
+    
+    const socket = new WebSocket(WS_URL);
+
+    socket.onopen    = () => console.log('✅ WebSocket connected');
+    socket.onclose   = () => console.log('❌ WebSocket disconnected');
+    socket.onerror   = (e) => console.error('WebSocket error:', e);
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'message') {
+            appendMessage(data);
+        } else if (data.type === 'typing') {
+            showTyping(data.is_typing);
+        } else if (data.type === 'status') {
+            updateStatus(data.status);
+        }
+    };
+
+    
+    function sendMessage() {
+        const input   = document.getElementById('msg-input');
+        const content = input.value.trim();
+
+        if (!content) return;   
+
+        socket.send(JSON.stringify({
+            type:    'message',
+            message: content
+        }));
+
+        input.value = '';
+        stopTyping();
+    }
+
+    
+    document.getElementById('msg-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    
+    function appendMessage(data) {
+        const isSent  = data.sender_id === CURRENT_USER_ID;
+        const chatBody = document.getElementById('chat-body');
+
+        const row = document.createElement('div');
+        row.className = `message-row ${isSent ? 'sent' : 'received'}`;
+        row.id = `msg-${data.message_id}`;
+
+        const tickHTML = isSent
+            ? `<span class="tick ${data.is_read ? 'read' : ''}">
+                   ${data.is_read ? '✓✓' : '✓'}
+               </span>`
+            : '';
+
+        const deleteHTML = isSent
+            ? `<button class="delete-btn"
+                       onclick="deleteMessage(${data.message_id})"
+                       title="Delete">🗑</button>`
+            : '';
+
+        row.innerHTML = `
+            <div class="bubble ${isSent ? 'sent' : 'received'}">
+                ${escapeHTML(data.message)}
+                <div class="meta">
+                    ${data.timestamp}
+                    ${tickHTML}
+                    ${deleteHTML}
+                </div>
+            </div>`;
+
+        chatBody.appendChild(row);
+        scrollToBottom();
+    }
+
+    
+    function scrollToBottom() {
+        const body = document.getElementById('chat-body');
+        body.scrollTop = body.scrollHeight;
+    }
+    scrollToBottom();   
+
+    
+    let typingTimer = null;
+
+    document.getElementById('msg-input').addEventListener('input', function() {
+        socket.send(JSON.stringify({ type: 'typing', is_typing: true }));
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(stopTyping, 2000);
+    });
+
+    function stopTyping() {
+        clearTimeout(typingTimer);
+        socket.send(JSON.stringify({ type: 'typing', is_typing: false }));
+    }
+
+    function showTyping(isTyping) {
+        const el = document.getElementById('typing-indicator');
+        el.textContent = isTyping ? '{{ other_user.username }} is typing...' : '';
+    }
+
+    
+    function updateStatus(status) {
+        const el = document.getElementById('status-text');
+        el.textContent = status === 'online' ? '🟢 Online' : '⚪ Offline';
+    }
+
+    
+    function deleteMessage(msgId) {
+        if (!confirm('Delete this message?')) return;
+
+        fetch(`/delete-message/${msgId}/`, {
+            method:  'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'deleted') {
+                const el = document.getElementById(`msg-${msgId}`);
+                if (el) el.remove();
+            }
+        })
+        .catch(err => console.error('Delete error:', err));
+    }
+
+    
+    function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
+    
+    function getCookie(name) {
+        let value = null;
+        document.cookie.split(';').forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + '=')) {
+                value = decodeURIComponent(c.substring(name.length + 1));
+            }
+        });
+        return value;
+    }
+</script>
+{% endblock %}
