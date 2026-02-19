@@ -73,7 +73,8 @@
 {% block extra_js %}
 <script>
     
-    const statusSocket = new WebSocket(`ws://${window.location.host}/ws/online/`);
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const statusSocket = new WebSocket(`${protocol}://${window.location.host}/ws/online/`);
 
     statusSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
