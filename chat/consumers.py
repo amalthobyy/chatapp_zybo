@@ -151,7 +151,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         await self.accept()
         await self.set_online(True)
 
-        # Broadcast this user came online to everyone
+        
         await self.channel_layer.group_send(self.group_name, {
             'type':    'status_update',
             'user_id': self.user.id,
@@ -169,7 +169,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data):
-        pass  # No incoming messages needed here
+        pass  
 
     async def status_update(self, event):
         await self.send(text_data=json.dumps({

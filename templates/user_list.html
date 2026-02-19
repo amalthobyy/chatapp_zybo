@@ -72,7 +72,7 @@
 
 {% block extra_js %}
 <script>
-    // ── WebSocket for live online status ────────────────────────────────────
+    
     const statusSocket = new WebSocket(`ws://${window.location.host}/ws/online/`);
 
     statusSocket.onmessage = function(e) {
@@ -96,9 +96,7 @@
         }
     }
 
-    // ── Poll unread counts every 5 seconds ──────────────────────────────────
-    // This is needed because WebSocket alone can't push unread counts
-    // without a more complex setup
+   
     setInterval(fetchUnreadCounts, 5000);
 
     function fetchUnreadCounts() {
