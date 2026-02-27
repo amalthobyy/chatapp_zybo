@@ -145,7 +145,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': ['redis://default:9jvmz5vUis7RsX91nEpJLKnNdi3MoF1u@redis-18709.crce179.ap-south-1-1.ec2.cloud.redislabs.com:18709'],
+            'hosts': ['yourpassword999'],
         },
     }
 }
